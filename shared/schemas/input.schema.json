@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://analog.cloud/schemas/input.schema.json",
+  "title": "Input descriptor",
+  "type": "object",
+  "required": ["id", "name", "kind", "transport", "connected", "selected"],
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "kind": {
+      "enum": [
+        "bluetooth_turntable",
+        "bluetooth_cassette",
+        "bluetooth_generic",
+        "line_in",
+        "usb",
+        "virtual"
+      ]
+    },
+    "transport": {
+      "enum": [
+        "bluetooth_a2dp",
+        "bluetooth_hfp",
+        "alsa",
+        "pipewire_node",
+        "virtual"
+      ]
+    },
+    "codec": { "type": ["string", "null"] },
+    "native_format": {
+      "type": ["object", "null"],
+      "properties": {
+        "sample_rate": { "type": "integer" },
+        "channels":    { "type": "integer" },
+        "format":      { "enum": ["f32", "s16", "s24", "s32"] }
+      }
+    },
+    "connected": { "type": "boolean" },
+    "selected":  { "type": "boolean" },
+    "last_level_dbfs": { "type": ["number", "null"] }
+  }
+}

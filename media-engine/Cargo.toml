@@ -9,7 +9,7 @@ publish.workspace = true
 default = ["mock"]
 # Compile against real system libraries. Requires PipeWire + GStreamer
 # development headers on the build host.
-real = []
+real = ["dep:pipewire", "dep:gstreamer", "dep:gstreamer-app", "dep:gstreamer-audio"]
 # Mock implementations for unit testing and dev hosts without a Linux
 # audio stack (CI, macOS, etc.).
 mock = []
@@ -28,3 +28,16 @@ tracing = { workspace = true }
 uuid = { workspace = true }
 bytes = { workspace = true }
 parking_lot = { workspace = true }
+
+# Pure-Rust DSP
+rubato = { workspace = true }
+biquad = { workspace = true }
+
+# WebRTC for browser output
+webrtc = { workspace = true }
+
+# Optional, only when `real` is enabled.
+pipewire = { workspace = true, optional = true }
+gstreamer = { workspace = true, optional = true }
+gstreamer-app = { workspace = true, optional = true }
+gstreamer-audio = { workspace = true, optional = true }

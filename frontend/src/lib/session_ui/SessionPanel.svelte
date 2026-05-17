@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import { activeSession, inputs, outputs } from '$lib/stores/session';
   import { api } from '$lib/api/client';
+  import { BrowserPlayback } from '$lib/api/webrtc';
   import VuMeter from '$lib/visualizers/VuMeter.svelte';
   import Spectrum from '$lib/visualizers/Spectrum.svelte';
 
@@ -8,6 +10,34 @@
   $: output = $outputs.find(
     (o) => $activeSession && o.kind === $activeSession.output_kind && o.name === $activeSession.output_device
   );
+
+  let audioEl: HTMLAudioElement;
+  let playback: BrowserPlayback | null = null;
+  let webrtcError = '';
+
+  $: maybeStartWebRtc($activeSession?.output_kind, $activeSession?.session_id);
+
+  async function maybeStartWebRtc(kind: string | undefined, sessionId: string | undefined) {
+    if (!audioEl) return;
+    if (kind === 'browser' && sessionId) {
+      if (playback) playback.stop();
+      playback = new BrowserPlayback();
+      webrtcError = '';
+      try {
+        await playback.start(audioEl);
+      } catch (err) {
+        webrtcError = err instanceof Error ? err.message : String(err);
+        console.warn('webrtc start failed', err);
+      }
+    } else if (playback) {
+      playback.stop();
+      playback = null;
+    }
+  }
+
+  onDestroy(() => {
+    if (playback) playback.stop();
+  });
 
   async function stop() {
     try {
@@ -53,6 +83,10 @@
   </div>
 
   <div class="controls">
+    <audio bind:this={audioEl} autoplay></audio>
+    {#if webrtcError}
+      <span class="muted small">webrtc: {webrtcError}</span>
+    {/if}
     <button data-variant="ghost" disabled={!$activeSession} on:click={stop}>Stop</button>
   </div>
 </section>

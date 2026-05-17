@@ -23,6 +23,7 @@ publish = false
 # async runtime
 tokio = { version = "1.40", features = ["full"] }
 tokio-util = { version = "0.7", features = ["full"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
 futures = "0.3"
 async-trait = "0.1"
 
@@ -63,7 +64,20 @@ bytes = "1"
 # Note: real media crates (pipewire, gstreamer-rs) require system libs.
 # They are listed here so individual crates can opt in.
 gstreamer = { version = "0.23", default-features = false }
+gstreamer-app = { version = "0.23", default-features = false }
+gstreamer-audio = { version = "0.23", default-features = false }
 pipewire = { version = "0.8", default-features = false }
+rubato = "0.16"
+biquad = "0.5"
+
+# WebRTC (browser output)
+webrtc = "0.11"
+
+# Discovery
+mdns-sd = "0.11"
+
+# Audio file IO (for tests + recording)
+hound = "3.5"
 
 # mqtt for HASS
 rumqttc = "0.24"

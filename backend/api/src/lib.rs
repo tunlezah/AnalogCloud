@@ -14,6 +14,8 @@
 //! | GET    | `/api/settings`            | current settings                  |
 //! | PATCH  | `/api/settings`            | update settings                   |
 //! | GET    | `/api/events`              | SSE event stream                  |
+//! | POST   | `/api/webrtc/offer`        | submit SDP offer, get answer      |
+//! | GET    | `/api/cast/stream.webm`    | Opus-in-WebM pull stream for Cast |
 //!
 //! The browser is a **detachable** controller — closing it must not
 //! affect any non-browser session.
@@ -21,22 +23,27 @@
 use std::sync::Arc;
 
 use axum::{
-    Json, Router,
     extract::State,
-    http::StatusCode,
-    response::sse::{Event as SseEvent, KeepAlive, Sse},
+    http::{header, StatusCode},
+    response::{
+        sse::{Event as SseEvent, KeepAlive, Sse},
+        IntoResponse, Response,
+    },
     routing::get,
+    Json, Router,
 };
 use futures::stream::Stream;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio_stream::wrappers::BroadcastStream;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 use analog_cloud_device_discovery::DeviceCatalog;
+use analog_cloud_media_engine::outputs::browser::BrowserOutput;
+use analog_cloud_media_engine::MediaEngine;
 use analog_cloud_session_manager::SessionManager;
 use analog_cloud_settings::SettingsStore;
-use analog_cloud_shared::events::SessionStopReason;
+use analog_cloud_shared::events::{Event, SessionStopReason};
 use analog_cloud_shared::session::StartSessionRequest;
 use analog_cloud_shared::settings::Settings;
 
@@ -45,6 +52,8 @@ pub struct AppState {
     pub catalog: DeviceCatalog,
     pub sessions: SessionManager,
     pub settings: SettingsStore,
+    pub media: MediaEngine,
+    pub browser_output: Arc<BrowserOutput>,
 }
 
 pub fn router(state: AppState) -> Router {
@@ -59,6 +68,8 @@ pub fn router(state: AppState) -> Router {
         )
         .route("/api/settings", get(get_settings).patch(patch_settings))
         .route("/api/events", get(events))
+        .route("/api/webrtc/offer", axum::routing::post(webrtc_offer))
+        .route("/api/cast/stream.webm", get(cast_stream))
         .with_state(Arc::new(state))
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
@@ -136,6 +147,8 @@ async fn patch_settings(
         })
         .await
         .map_err(|e| ApiError(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    // Propagate EQ changes into the media engine.
+    state.media.set_equalizer(merged.equalizer.clone());
     Ok(Json(merged))
 }
 
@@ -143,37 +156,109 @@ fn json_of<T: serde::Serialize>(v: &T) -> serde_json::Value {
     serde_json::to_value(v).unwrap_or_default()
 }
 
-/// Shallow JSON merge — patch wins on overlapping keys, sub-objects are
-/// merged recursively, arrays and scalars are replaced.
-fn merge(mut base: serde_json::Value, patch: serde_json::Value) -> serde_json::Value {
+/// Recursive JSON merge — patch wins on overlapping keys, sub-objects
+/// are merged recursively, arrays and scalars are replaced wholesale.
+fn merge(base: serde_json::Value, patch: serde_json::Value) -> serde_json::Value {
     use serde_json::Value::Object;
-    if let (Object(b), Object(p)) = (&mut base, patch) {
-        for (k, v) in p {
-            let entry = b.remove(&k).unwrap_or(serde_json::Value::Null);
-            b.insert(k, merge(entry, v));
+    match (base, patch) {
+        (Object(mut b), Object(p)) => {
+            for (k, v) in p {
+                let entry = b.remove(&k).unwrap_or(serde_json::Value::Null);
+                b.insert(k, merge(entry, v));
+            }
+            Object(b)
         }
-        base
-    } else {
-        // For non-objects the patch replaces.
-        // (We swallowed `patch` in the destructure; rebuild here.)
-        // SAFETY: only reached when shapes don't match.
-        base
+        // Arrays and scalars: the patch replaces the base.
+        (_, patch) => patch,
     }
 }
 
 async fn events(
     State(state): State<Arc<AppState>>,
 ) -> Sse<impl Stream<Item = Result<SseEvent, std::convert::Infallible>>> {
-    let rx = state.sessions.subscribe();
+    let session_rx = state.sessions.subscribe();
+    let level_rx = state.media.subscribe_levels();
+    let catalog_rx = state.catalog.subscribe();
+
     let stream = async_stream::stream! {
-        let mut stream = BroadcastStream::new(rx);
         use futures::StreamExt;
-        while let Some(Ok(event)) = stream.next().await {
-            let data = serde_json::to_string(&event).unwrap_or_else(|_| "{}".into());
-            yield Ok(SseEvent::default().data(data));
+        let mut session_stream = BroadcastStream::new(session_rx);
+        let mut level_stream = BroadcastStream::new(level_rx);
+        let mut catalog_stream = BroadcastStream::new(catalog_rx);
+
+        loop {
+            tokio::select! {
+                Some(Ok(event)) = session_stream.next() => {
+                    if let Ok(data) = serde_json::to_string(&event) {
+                        yield Ok(SseEvent::default().data(data));
+                    }
+                }
+                Some(Ok(sample)) = level_stream.next() => {
+                    let event = Event::Levels {
+                        input_id: sample.input_id,
+                        level: sample.level,
+                    };
+                    if let Ok(data) = serde_json::to_string(&event) {
+                        yield Ok(SseEvent::default().data(data));
+                    }
+                }
+                Some(Ok(cat)) = catalog_stream.next() => {
+                    use analog_cloud_device_discovery::CatalogEvent;
+                    let event = match cat {
+                        CatalogEvent::InputUpserted(i) => Event::InputUpdated { input: i },
+                        CatalogEvent::InputRemoved(id) => Event::InputRemoved { input_id: id },
+                        CatalogEvent::OutputUpserted(o) => Event::OutputUpdated { output: o },
+                        CatalogEvent::OutputRemoved(id) => Event::OutputRemoved { output_id: id },
+                    };
+                    if let Ok(data) = serde_json::to_string(&event) {
+                        yield Ok(SseEvent::default().data(data));
+                    }
+                }
+                else => break,
+            }
         }
     };
     Sse::new(stream).keep_alive(KeepAlive::default())
+}
+
+#[derive(Deserialize)]
+struct WebRtcOffer {
+    sdp: String,
+}
+
+#[derive(Serialize)]
+struct WebRtcAnswer {
+    sdp: String,
+}
+
+async fn webrtc_offer(
+    State(state): State<Arc<AppState>>,
+    Json(offer): Json<WebRtcOffer>,
+) -> Result<Json<WebRtcAnswer>, ApiError> {
+    let answer_sdp = state
+        .browser_output
+        .handle_offer(offer.sdp)
+        .await
+        .map_err(|e| ApiError(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    Ok(Json(WebRtcAnswer { sdp: answer_sdp }))
+}
+
+/// Chromecast pulls audio from this endpoint as Opus-in-WebM. The body
+/// is a streaming response — the cast device keeps the connection open
+/// and reads frames as they're produced.
+///
+/// This scaffold returns a 503 until the real GStreamer encoder is
+/// wired (Phase 1 still — the active stream needs to be coupled to the
+/// HTTP body sink).
+async fn cast_stream(State(_state): State<Arc<AppState>>) -> Response {
+    // TODO(phase-1): pipe the active session's canonical PCM through an
+    // Opus encoder and into the response body via an mpsc -> Body bridge.
+    (
+        StatusCode::SERVICE_UNAVAILABLE,
+        [(header::CONTENT_TYPE, "text/plain")],
+        "cast stream endpoint scaffolded; encoder not yet wired",
+    )
+        .into_response()
 }
 
 #[derive(Debug)]
@@ -193,5 +278,35 @@ impl ApiError {
 impl axum::response::IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
         (self.0, Json(json!({ "error": self.1 }))).into_response()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn merge_replaces_scalars() {
+        let base = json!({"a": 1, "b": 2});
+        let patch = json!({"b": 99});
+        assert_eq!(merge(base, patch), json!({"a": 1, "b": 99}));
+    }
+
+    #[test]
+    fn merge_replaces_arrays_wholesale() {
+        let base = json!({"bands": [0, 0, 0]});
+        let patch = json!({"bands": [3, 2, 1]});
+        assert_eq!(merge(base, patch), json!({"bands": [3, 2, 1]}));
+    }
+
+    #[test]
+    fn merge_recurses_into_sub_objects() {
+        let base = json!({"eq": {"enabled": false, "bands": [0, 0]}});
+        let patch = json!({"eq": {"enabled": true}});
+        assert_eq!(
+            merge(base, patch),
+            json!({"eq": {"enabled": true, "bands": [0, 0]}}),
+        );
     }
 }

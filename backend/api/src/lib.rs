@@ -148,7 +148,7 @@ async fn patch_settings(
         .await
         .map_err(|e| ApiError(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     // Propagate EQ changes into the media engine.
-    state.media.set_equalizer(merged.equalizer.clone());
+    state.media.set_equalizer(merged.equalizer);
     Ok(Json(merged))
 }
 

@@ -22,7 +22,7 @@ async fn main() -> anyhow::Result<()> {
         .await
         .context("opening settings store")?;
     let media = MediaEngine::start().await.context("starting media engine")?;
-    media.set_equalizer(settings.snapshot().equalizer.clone());
+    media.set_equalizer(settings.snapshot().equalizer);
 
     let catalog = DeviceCatalog::new();
     catalog.start().await;

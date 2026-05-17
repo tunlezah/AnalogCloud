@@ -14,13 +14,19 @@
   let audioEl: HTMLAudioElement;
   let playback: BrowserPlayback | null = null;
   let webrtcError = '';
+  let webrtcSessionId: string | null = null;
 
-  $: maybeStartWebRtc($activeSession?.output_kind, $activeSession?.session_id);
+  // Only react when the relevant identity changes — output_kind or
+  // session_id. Avoids tearing down WebRTC on every level/stats update.
+  $: handleSession($activeSession?.output_kind, $activeSession?.session_id);
 
-  async function maybeStartWebRtc(kind: string | undefined, sessionId: string | undefined) {
+  async function handleSession(kind: string | undefined, sessionId: string | undefined) {
     if (!audioEl) return;
-    if (kind === 'browser' && sessionId) {
+    const wantsBrowser = kind === 'browser' && !!sessionId;
+    const idChanged = (sessionId ?? null) !== webrtcSessionId;
+    if (wantsBrowser && idChanged) {
       if (playback) playback.stop();
+      webrtcSessionId = sessionId ?? null;
       playback = new BrowserPlayback();
       webrtcError = '';
       try {
@@ -29,9 +35,10 @@
         webrtcError = err instanceof Error ? err.message : String(err);
         console.warn('webrtc start failed', err);
       }
-    } else if (playback) {
+    } else if (!wantsBrowser && playback) {
       playback.stop();
       playback = null;
+      webrtcSessionId = null;
     }
   }
 

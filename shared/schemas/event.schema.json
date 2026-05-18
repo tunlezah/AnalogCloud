@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://analog.cloud/schemas/event.schema.json",
+  "title": "Analog Cloud event envelope",
+  "description": "Events emitted by the backend over SSE / WebSocket. Mirrors `shared::events::Event` in Rust.",
+  "type": "object",
+  "required": ["type"],
+  "discriminator": { "propertyName": "type" },
+  "oneOf": [
+    { "$ref": "#/$defs/InputUpdated" },
+    { "$ref": "#/$defs/InputRemoved" },
+    { "$ref": "#/$defs/OutputUpdated" },
+    { "$ref": "#/$defs/OutputRemoved" },
+    { "$ref": "#/$defs/SessionArmed" },
+    { "$ref": "#/$defs/SessionStarted" },
+    { "$ref": "#/$defs/SessionStats" },
+    { "$ref": "#/$defs/Levels" },
+    { "$ref": "#/$defs/SessionStopped" },
+    { "$ref": "#/$defs/Notice" }
+  ],
+  "$defs": {
+    "InputUpdated": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "input_updated" },
+        "input": { "$ref": "input.schema.json" }
+      },
+      "required": ["type", "input"]
+    },
+    "InputRemoved": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "input_removed" },
+        "input_id": { "type": "string" }
+      },
+      "required": ["type", "input_id"]
+    },
+    "OutputUpdated": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "output_updated" },
+        "output": { "$ref": "output.schema.json" }
+      },
+      "required": ["type", "output"]
+    },
+    "OutputRemoved": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "output_removed" },
+        "output_id": { "type": "string" }
+      },
+      "required": ["type", "output_id"]
+    },
+    "SessionArmed": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "session_armed" },
+        "session": { "$ref": "session.schema.json" }
+      },
+      "required": ["type", "session"]
+    },
+    "SessionStarted": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "session_started" },
+        "session": { "$ref": "session.schema.json" }
+      },
+      "required": ["type", "session"]
+    },
+    "SessionStats": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "session_stats" },
+        "session_id": { "type": "string", "format": "uuid" },
+        "stats": { "$ref": "session.schema.json#/$defs/Stats" }
+      },
+      "required": ["type", "session_id", "stats"]
+    },
+    "Levels": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "levels" },
+        "input_id": { "type": "string" },
+        "level": {
+          "type": "object",
+          "properties": {
+            "left":  { "$ref": "#/$defs/ChannelLevel" },
+            "right": { "$ref": "#/$defs/ChannelLevel" }
+          },
+          "required": ["left", "right"]
+        }
+      },
+      "required": ["type", "input_id", "level"]
+    },
+    "ChannelLevel": {
+      "type": "object",
+      "properties": {
+        "peak_dbfs": { "type": "number" },
+        "rms_dbfs":  { "type": "number" }
+      },
+      "required": ["peak_dbfs", "rms_dbfs"]
+    },
+    "SessionStopped": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "session_stopped" },
+        "session_id": { "type": "string", "format": "uuid" },
+        "reason": {
+          "enum": ["user_requested", "taken_over", "input_lost", "output_lost", "errored"]
+        }
+      },
+      "required": ["type", "session_id", "reason"]
+    },
+    "Notice": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "notice" },
+        "severity": { "enum": ["info", "warn", "error"] },
+        "message": { "type": "string" }
+      },
+      "required": ["type", "severity", "message"]
+    }
+  }
+}

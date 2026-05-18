@@ -1,0 +1,105 @@
+[workspace]
+resolver = "2"
+members = [
+    "backend/api",
+    "backend/session_manager",
+    "backend/device_discovery",
+    "backend/metadata",
+    "backend/hass",
+    "backend/settings",
+    "backend/analog-cloud-server",
+    "media-engine",
+    "shared",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.79"
+license = "Apache-2.0"
+publish = false
+
+[workspace.dependencies]
+# async runtime
+tokio = { version = "1.40", features = ["full"] }
+tokio-util = { version = "0.7", features = ["full"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# web framework
+axum = { version = "0.7", features = ["ws", "macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["fs", "cors", "trace", "compression-gzip"] }
+hyper = { version = "1.4", features = ["full"] }
+
+# serde
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+
+# observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# errors
+thiserror = "1"
+anyhow = "1"
+
+# ids / time
+uuid = { version = "1", features = ["v7", "serde"] }
+time = { version = "0.3", features = ["serde", "formatting", "parsing"] }
+
+# config
+config = "0.14"
+directories = "5"
+
+# misc
+once_cell = "1"
+parking_lot = "0.12"
+dashmap = "6"
+bytes = "1"
+
+# media
+# Note: real media crates (pipewire, gstreamer-rs) require system libs.
+# They are listed here so individual crates can opt in.
+gstreamer = { version = "0.23", default-features = false }
+gstreamer-app = { version = "0.23", default-features = false }
+gstreamer-audio = { version = "0.23", default-features = false }
+pipewire = { version = "0.8", default-features = false }
+rubato = "0.16"
+biquad = "0.5"
+
+# WebRTC (browser output)
+webrtc = "0.11"
+
+# Discovery
+mdns-sd = "0.11"
+
+# Audio file IO (for tests + recording)
+hound = "3.5"
+
+# mqtt for HASS
+rumqttc = "0.24"
+
+# internal
+analog-cloud-api = { path = "backend/api" }
+analog-cloud-session-manager = { path = "backend/session_manager" }
+analog-cloud-device-discovery = { path = "backend/device_discovery" }
+analog-cloud-metadata = { path = "backend/metadata" }
+analog-cloud-hass = { path = "backend/hass" }
+analog-cloud-settings = { path = "backend/settings" }
+analog-cloud-media-engine = { path = "media-engine" }
+analog-cloud-shared = { path = "shared" }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = "debuginfo"
+
+[profile.release-realtime]
+inherits = "release"
+opt-level = 3
+debug = 1
+panic = "abort"

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://analog.cloud/schemas/output.schema.json",
+  "title": "Output descriptor",
+  "type": "object",
+  "required": ["id", "name", "kind", "transport", "state", "active", "reconnectable"],
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "kind": { "enum": ["browser", "local", "chromecast", "air_play"] },
+    "transport": {
+      "enum": [
+        "web_rtc_opus",
+        "pipewire_sink",
+        "opus_http",
+        "aac_http",
+        "raop"
+      ]
+    },
+    "state": {
+      "enum": ["idle", "negotiating", "streaming", "reconnecting", "errored"]
+    },
+    "latency_ms_estimate": { "type": ["integer", "null"] },
+    "active": { "type": "boolean" },
+    "reconnectable": { "type": "boolean" }
+  }
+}

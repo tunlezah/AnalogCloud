@@ -1,0 +1,30 @@
+[package]
+name = "analog-cloud-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+analog-cloud-shared = { workspace = true }
+analog-cloud-session-manager = { workspace = true }
+analog-cloud-device-discovery = { workspace = true }
+analog-cloud-settings = { workspace = true }
+analog-cloud-metadata = { workspace = true }
+analog-cloud-media-engine = { workspace = true }
+
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tokio-stream = { workspace = true }
+futures = { workspace = true }
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+uuid = { workspace = true }
+async-stream = "0.3"

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://analog.cloud/schemas/session.schema.json",
+  "title": "Session",
+  "type": "object",
+  "required": [
+    "session_id",
+    "input_id",
+    "output_kind",
+    "output_device",
+    "transport",
+    "started_at",
+    "controller_clients",
+    "state",
+    "stats"
+  ],
+  "properties": {
+    "session_id":   { "type": "string", "format": "uuid" },
+    "input_id":     { "type": "string" },
+    "output_kind":  { "enum": ["browser", "local", "chromecast", "air_play"] },
+    "output_device":{ "type": "string" },
+    "transport":    {
+      "enum": ["web_rtc_opus", "pipewire_sink", "opus_http", "aac_http", "raop"]
+    },
+    "started_at":   { "type": "string", "format": "date-time" },
+    "controller_clients": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "state": {
+      "enum": ["idle", "armed", "playing", "reconnecting", "stopped", "errored"]
+    },
+    "stats": { "$ref": "#/$defs/Stats" }
+  },
+  "$defs": {
+    "Stats": {
+      "type": "object",
+      "required": ["latency_ms", "buffer_ms", "reconnects"],
+      "properties": {
+        "latency_ms":   { "type": "integer", "minimum": 0 },
+        "buffer_ms":    { "type": "integer", "minimum": 0 },
+        "codec":        { "type": ["string", "null"] },
+        "bitrate_kbps": { "type": ["integer", "null"] },
+        "reconnects":   { "type": "integer", "minimum": 0 },
+        "cpu_usage_pct":{ "type": ["number", "null"] }
+      }
+    }
+  }
+}

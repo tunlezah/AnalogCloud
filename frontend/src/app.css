@@ -1,0 +1,214 @@
+/* Analog Cloud — global styles.
+ *
+ * Components MUST consume tokens (CSS custom properties) rather than
+ * raw colors. The theme engine in $lib/themes rewrites these at runtime.
+ */
+
+:root {
+  /* Defaults match Analog Core. The theme store overrides at runtime. */
+  --ac-bg: #0b0b0d;
+  --ac-bg-elevated: #141417;
+  --ac-panel: #1a1a1e;
+  --ac-border: #2a2a30;
+  --ac-text: #ededf0;
+  --ac-text-muted: #8c8c95;
+  --ac-accent: #f0a23b;
+  --ac-accent-muted: #a66f25;
+  --ac-indicator: #5be49b;
+  --ac-danger: #ff5c5c;
+
+  --ac-radius: 10px;
+  --ac-radius-lg: 18px;
+  --ac-chrome: linear-gradient(180deg, #1f1f23 0%, #141418 100%);
+  --ac-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 8px 24px rgba(0, 0, 0, 0.5);
+  --ac-backdrop: none;
+
+  --ac-motion-fast: 120ms;
+  --ac-motion-med: 220ms;
+  --ac-motion-slow: 420ms;
+  --ac-easing: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --ac-font: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ac-font-display: 'Inter Display', Inter, sans-serif;
+  --ac-font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  --ac-weight-body: 300;
+  --ac-weight-display: 200;
+  --ac-tracking: 0.02em;
+
+  --ac-viz-primary: #f0a23b;
+  --ac-viz-secondary: #5be49b;
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--ac-bg);
+  color: var(--ac-text);
+  font-family: var(--ac-font);
+  font-weight: var(--ac-weight-body);
+  letter-spacing: var(--ac-tracking);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-image:
+    radial-gradient(60% 40% at 50% -10%, rgba(240, 162, 59, 0.05), transparent 60%),
+    radial-gradient(60% 60% at 110% 110%, rgba(91, 228, 155, 0.04), transparent 60%);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--ac-font-display);
+  font-weight: var(--ac-weight-display);
+  letter-spacing: var(--ac-tracking);
+  margin: 0;
+}
+
+code,
+.mono {
+  font-family: var(--ac-font-mono);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 1px solid var(--ac-border);
+  background: var(--ac-chrome);
+  border-radius: var(--ac-radius);
+  padding: 0.55em 1em;
+  cursor: pointer;
+  transition:
+    transform var(--ac-motion-fast) var(--ac-easing),
+    border-color var(--ac-motion-fast) var(--ac-easing),
+    background-color var(--ac-motion-fast) var(--ac-easing);
+}
+
+button:hover {
+  border-color: var(--ac-accent);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+button[data-variant='accent'] {
+  background: var(--ac-accent);
+  color: #1a0e00;
+  border-color: var(--ac-accent);
+  font-weight: 600;
+}
+
+button[data-variant='ghost'] {
+  background: transparent;
+  border-color: transparent;
+}
+
+button[data-variant='ghost']:hover {
+  background: var(--ac-bg-elevated);
+  border-color: var(--ac-border);
+}
+
+a {
+  color: var(--ac-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--ac-text);
+}
+
+/* Panel chrome — every surface that should feel like brushed metal /
+ * glass / phosphor / etc. */
+.panel {
+  background: var(--ac-chrome);
+  border: 1px solid var(--ac-border);
+  border-radius: var(--ac-radius-lg);
+  box-shadow: var(--ac-shadow);
+  backdrop-filter: var(--ac-backdrop);
+  -webkit-backdrop-filter: var(--ac-backdrop);
+}
+
+.panel-inset {
+  background: var(--ac-bg-elevated);
+  border: 1px solid var(--ac-border);
+  border-radius: var(--ac-radius);
+}
+
+/* Tactile selectable card — used by Input and Output cards. */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--ac-radius);
+  background: var(--ac-chrome);
+  border: 1px solid var(--ac-border);
+  box-shadow: var(--ac-shadow);
+  transition:
+    border-color var(--ac-motion-fast) var(--ac-easing),
+    transform var(--ac-motion-fast) var(--ac-easing);
+}
+
+.card:hover {
+  border-color: var(--ac-accent-muted);
+  transform: translateY(-1px);
+}
+
+.card[data-active='true'] {
+  border-color: var(--ac-accent);
+  box-shadow:
+    0 0 0 1px var(--ac-accent) inset,
+    var(--ac-shadow);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-family: var(--ac-font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--ac-bg-elevated);
+  border: 1px solid var(--ac-border);
+  color: var(--ac-text-muted);
+}
+
+.badge[data-tone='accent'] {
+  color: var(--ac-accent);
+  border-color: var(--ac-accent);
+}
+
+.badge[data-tone='live']::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ac-indicator);
+  box-shadow: 0 0 8px var(--ac-indicator);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% { opacity: 1; }
+  50%  { opacity: 0.4; }
+}
+
+.muted {
+  color: var(--ac-text-muted);
+}

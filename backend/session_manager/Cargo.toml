@@ -1,0 +1,21 @@
+[package]
+name = "analog-cloud-session-manager"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+analog-cloud-shared = { workspace = true }
+analog-cloud-device-discovery = { workspace = true }
+analog-cloud-media-engine = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+time = { workspace = true }
+parking_lot = { workspace = true }

@@ -1,0 +1,28 @@
+[package]
+name = "analog-cloud-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "analog-cloud-server"
+path = "src/main.rs"
+
+[dependencies]
+analog-cloud-api = { workspace = true }
+analog-cloud-device-discovery = { workspace = true }
+analog-cloud-session-manager = { workspace = true }
+analog-cloud-settings = { workspace = true }
+analog-cloud-media-engine = { workspace = true }
+analog-cloud-hass = { workspace = true }
+analog-cloud-metadata = { workspace = true }
+analog-cloud-shared = { workspace = true }
+
+tokio = { workspace = true }
+axum = { workspace = true }
+tower-http = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
